@@ -67,8 +67,22 @@ pub use {egui, puffin};
 
 use egui::*;
 use puffin::*;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
+use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
+
+use once_cell::sync::Lazy;
+use palette::{Gradient, LinSrgb};
+
+static GRADIENT: Lazy<Gradient<LinSrgb>> = Lazy::new(|| {
+    Gradient::new(vec![
+        LinSrgb::new(28.0 / 255.0, 197.0 / 255.0, 220.0 / 255.0),
+        LinSrgb::new(198.0 / 255.0, 122.0 / 255.0, 206.0 / 255.0),
+        LinSrgb::new(255.0 / 255.0, 68.0 / 255.0, 159.0 / 255.0),
+        LinSrgb::new(74.0 / 255.0, 169.0 / 255.0, 108.0 / 255.0),
+    ])
+});
 
 // ----------------------------------------------------------------------------
 
@@ -904,7 +918,8 @@ fn paint_record(
         HOVER_COLOR
     } else {
         // options.rect_color
-        color_from_duration(record.duration_ns)
+        // color_from_duration(record.duration_ns)
+        color_from_hash(&record.id)
     };
 
     info.painter.rect_filled(
@@ -947,13 +962,15 @@ fn paint_record(
     }
 }
 
-fn color_from_duration(ns: NanoSecond) -> Rgba {
-    let ms = to_ms(ns) as f32;
-    // Brighter = more time.
-    // So we start with dark colors (blue) and later bright colors (green).
-    let b = remap_clamp(ms, 0.0..=5.0, 1.0..=0.3);
-    let r = remap_clamp(ms, 0.0..=10.0, 0.5..=0.8);
-    let g = remap_clamp(ms, 10.0..=33.0, 0.1..=0.8);
+fn color_from_hash<T: Hash>(hashable: &T) -> Rgba {
+    let mut s = DefaultHasher::new();
+    hashable.hash(&mut s);
+    let hash = s.finish();
+    let scalar = hash as f64 / u64::max_value() as f64;
+    let color = GRADIENT.get(scalar as f32);
+    let b = color.blue;
+    let r = color.red;
+    let g = color.green;
     let a = 0.9;
     Rgba::from_rgb(r, g, b) * a
 }

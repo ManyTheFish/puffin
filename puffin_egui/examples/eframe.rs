@@ -54,6 +54,30 @@ fn sleep_ms(ms: usize) {
         1 => std::thread::sleep(std::time::Duration::from_millis(1)),
         _ => {
             sleep_ms(ms / 2);
+            sleep_ms_2(ms - (ms / 2));
+        }
+    }
+}
+
+fn sleep_ms_2(ms: usize) {
+    puffin::profile_function!();
+    match ms {
+        0 => {}
+        1 => std::thread::sleep(std::time::Duration::from_millis(1)),
+        _ => {
+            sleep_ms_3(ms / 2);
+            sleep_ms(ms - (ms / 2));
+        }
+    }
+}
+
+fn sleep_ms_3(ms: usize) {
+    puffin::profile_function!();
+    match ms {
+        0 => {}
+        1 => std::thread::sleep(std::time::Duration::from_millis(1)),
+        _ => {
+            sleep_ms_2(ms / 2);
             sleep_ms(ms - (ms / 2));
         }
     }
