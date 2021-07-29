@@ -1,5 +1,6 @@
 use anyhow::Context as _;
 use std::{
+    convert::TryInto,
     io::Write,
     net::{SocketAddr, TcpListener, TcpStream},
     sync::Arc,
@@ -64,8 +65,8 @@ impl PuffinServerImpl {
             match self.tcp_listener.accept() {
                 Ok((stream, client_addr)) => {
                     stream
-                        .set_nonblocking(true)
-                        .context("stream.set_nonblocking")?;
+                        .set_nonblocking(false)
+                        .context("stream.unset_nonblocking")?;
 
                     log::info!("{} connected", client_addr);
                     self.clients.push((client_addr, stream));
@@ -87,13 +88,12 @@ impl PuffinServerImpl {
             .serialize(frame)
             .context("Encode puffin frame")?;
 
+        let length: u32 = encoded.len().try_into().unwrap();
         let mut message = vec![];
         message
             .write_all(&crate::PROTOCOL_VERSION.to_le_bytes())
             .unwrap();
-        message
-            .write_all(&(encoded.len() as u32).to_le_bytes())
-            .unwrap();
+        message.write_all(&length.to_le_bytes()).unwrap();
         message.append(&mut encoded);
 
         use retain_mut::RetainMut as _;
